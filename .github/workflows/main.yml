@@ -1,0 +1,47 @@
+name: Import Single Branch/Tag
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_repo:
+        description: 'Target Git URL'
+        required: true
+        default: 'https://github.com/tanvirlinux5/MemKernel1.git'
+      target_branch:
+        description: 'Branch Name'
+        required: true
+        default: 'main'
+      dest_branch:
+        description: 'Your Destination Branch'
+        required: true
+        default: 'main'
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Current Repo
+        uses: actions/checkout@v4
+
+      - name: Fetch and Clean Push
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # নির্দিষ্ট ব্রাঞ্চ ক্লোন করা
+          git clone --depth=1 -b "${{ github.event.inputs.target_branch }}" "${{ github.event.inputs.source_repo }}" /tmp/source_repo
+
+          # ক্যাশ মুছে ফ্রেশ ফাইল আনা
+          rm -rf /tmp/source_repo/.git
+          shopt -s dotglob
+          cp -rf /tmp/source_repo/* ./
+          rm -rf /tmp/source_repo
+
+          # ফোর্স পুশ
+          git checkout -B "${{ github.event.inputs.dest_branch }}"
+          git add -A
+          git commit -m "Cleanly imported: ${{ github.event.inputs.target_branch }}"
+          git push origin "${{ github.event.inputs.dest_branch }}" -f
